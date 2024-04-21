@@ -1,0 +1,9 @@
+html, body {
+    margin: 0;
+    height: 100%;
+  }
+  #c {
+    width: 50%;
+    height: 50%;
+    display: block;
+  }
