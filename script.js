@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import {OBJLoader} from "three/addons/loaders/OBJLoader.js"
+import {OBJLoader} from "three/addons/loaders/OBJLoader.js"; // object loader
+import {MTLLoader} from "three/addons/loaders/MTLLoader.js";
 // Call main function when DOM content is loaded
 document.addEventListener('DOMContentLoaded', main);
 
@@ -22,53 +23,79 @@ function main() {
 
     // load in windmill
     const objLoader = new OBJLoader();
-	objLoader.load( 'windmill_001.obj', ( root ) => {
-		scene.add( root );
-	} );
+    const mtlLoader = new MTLLoader();
+    mtlLoader.load('textures/windmill_001.mtl', (mtl) => {
+        mtl.preload();
+        mtl.materials.Material.side = THREE.DoubleSide;
+        objLoader.setMaterials(mtl);
+	    objLoader.load('textures/windmill_001.obj', ( root ) => {
+		    scene.add( root );
+	    } );
+    } );
 
-    // defining box geometry
-    const boxWidth = 1;
-    const boxHeight = 1;
-    const boxDepth = 1;
-    const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+    // define box geometry
+    const boxWidth = 2;
+    const boxHeight = 2;
+    const boxDepth = 2;
+    const box_geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+    // define cone geometry
+    const coneRadius = 2;
+    const coneHeight = 3;
+    const cone_geometry = new THREE.ConeGeometry(coneRadius, coneHeight);
+
+    // define cylinder geometry
+    const cylinderRadTop = 2;
+    const cylinderRadBot = 2;
+    const cylinderHeight = 2;
+    const cylinder_geometry = new THREE.CylinderGeometry(cylinderRadTop, cylinderRadBot, cylinderHeight);
 
     // texture loader
     const loader = new THREE.TextureLoader();
     const texture = loader.load("wall.jpg");
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    // simple cube generator
-    function makeInstance( geometry, color, x ) {
+    // simple shape generator
+    function makeInstance( geometry, color, pos ) {
 
 		const material = new THREE.MeshPhongMaterial( { color } );
 
-		const cube = new THREE.Mesh( geometry, material );
-		scene.add( cube );
+		const shape = new THREE.Mesh( geometry, material );
+		scene.add( shape );
 
-		cube.position.x = x;
+		shape.position.x = pos[0];
+        shape.position.y = pos[1];
+        shape.position.z = pos[2];
 
-		return cube;
+		return shape;
 
 	}
 
-    // push middle, left, and right cube
-    const cubes = [
-        // makeInstance( geometry, 0x44aa88, 0 ), middle cube now textured below
-		makeInstance( geometry, 0x8844aa, - 5 ),
-		makeInstance( geometry, 0xaa8844, 5 ),
-    ]
+    // shapes to be rendered
+    const shapes = []
 
     // textured cube
     const material = new THREE.MeshPhongMaterial( {
 		map: texture
 	} );
-    const cube = new THREE.Mesh( geometry, material );
-    cube.position.x = -5
-    cube.position.y = 2
+    const cube = new THREE.Mesh( box_geometry, material );
+    cube.position.x = -5;
+    cube.position.y = 10;
 	scene.add( cube );
-	cubes.push( cube ); // add to our list of cubes to rotate
+	shapes.push( cube ); // add to our list of cubes to rotate
+
+    // cone
+    const cone_position = [5, 10, 0];
+    const cone = makeInstance(cone_geometry, 0xff5555, cone_position);
+    shapes.push(cone);
+
+    // cylinder
+    const cylinder_position = [-6, 0, 0];
+    const cylinder = makeInstance(cylinder_geometry, 0x55ff55, cylinder_position);
+    shapes.push(cylinder);
     
 
+    // resize renderer to size of canvas
     function resizeRendererToDisplaySize( renderer ) {
 
 		const canvas = renderer.domElement;
@@ -86,8 +113,9 @@ function main() {
 	}
 
     // render
-    function render() {
+    function render(time) {
        
+        time *= 0.001;
         if ( resizeRendererToDisplaySize( renderer ) ) {
 
 			const canvas = renderer.domElement;
@@ -95,6 +123,13 @@ function main() {
 			camera.updateProjectionMatrix();
 
 		}
+
+        shapes.forEach( ( shape, ndx ) => {
+            const speed = 1 + ndx * .1;
+			const rot = time * speed;
+			shape.rotation.x = rot;
+			shape.rotation.y = rot;
+        });
 
         renderer.render(scene, camera);
        
@@ -104,7 +139,7 @@ function main() {
 
     // lighting
     const color = 0xFFFFFF;
-    const intensity = 3;
+    const intensity = 5;
     const light = new THREE.DirectionalLight(color, intensity);
     light.position.set(-1, 2, 4);
     scene.add(light);
